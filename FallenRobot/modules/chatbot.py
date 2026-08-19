@@ -87,13 +87,14 @@ def fallen_message(update: Update, context: CallbackContext):
     if not message.text or message.document:
         return
 
+    # Check if chatbot is enabled for this chat
     if not sql.is_fallen(chat.id):
         return
 
     if message.text.startswith(("/", "!", "#")):
         return
 
-    # Check if replied to bot or bot is tagged or in DM
+    # Trigger conditions
     is_reply_to_bot = (
         message.reply_to_message
         and message.reply_to_message.from_user.id == BOT_ID
@@ -101,6 +102,7 @@ def fallen_message(update: Update, context: CallbackContext):
     is_tagged = BOT_USERNAME and f"@{BOT_USERNAME.lower()}" in message.text.lower()
     is_private = chat.type == "private"
 
+    # If it's a group, reply if tagged or replied to bot
     if not (is_reply_to_bot or is_tagged or is_private):
         return
 
@@ -113,15 +115,27 @@ def fallen_message(update: Update, context: CallbackContext):
 
     context.bot.send_chat_action(chat.id, action="typing")
 
-    # Fast Free AI API (Pollinations)
+    # Ultra-Fast Free Chat Endpoint
+    headers = {"User-Agent": "Mozilla/5.0"}
     try:
-        system_prompt = f"You are {BOT_NAME}, a friendly and helpful AI chatbot. Reply in Hindi/Hinglish or English naturally depending on what the user asks."
-        prompt = requests.utils.quote(f"{system_prompt}\nUser: {user_text}\n{BOT_NAME}:")
-        url = f"https://text.pollinations.ai/{prompt}"
+        api_url = f"https://api.simsimi.vn/v1/simtalk"
+        payload = {"text": user_text, "lc": "hi"}  # Hindi / Hinglish mode
+        res = requests.post(api_url, data=payload, headers=headers, timeout=6)
+        if res.status_code == 200:
+            reply = res.json().get("message")
+            if reply and reply.strip():
+                message.reply_text(reply)
+                return
+    except Exception:
+        pass
 
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200 and response.text.strip():
-            message.reply_text(response.text.strip())
+    # Fallback 2: Pollinations AI
+    try:
+        url = f"https://text.pollinations.ai/{requests.utils.quote(user_text)}?model=openai"
+        res = requests.get(url, headers=headers, timeout=8)
+        if res.status_code == 200 and res.text.strip():
+            message.reply_text(res.text.strip())
+            return
     except Exception:
         pass
 
