@@ -1,4 +1,5 @@
 import html
+import logging
 import requests
 from telegram import (
     InlineKeyboardButton,
@@ -20,7 +21,9 @@ from FallenRobot import BOT_ID, BOT_NAME, BOT_USERNAME, dispatcher
 from FallenRobot.modules.helper_funcs.chat_status import user_admin_no_reply
 from FallenRobot.modules.log_channel import gloggable
 
-# Free Google Gemini API Key
+LOGGER = logging.getLogger(__name__)
+
+# Google Gemini API Key
 GEMINI_API_KEY = "AQ.Ab8RN6Jc8Xc1SXFL3RaVf-rCwBqnxFBgKQ1DfbS2IXUAYc7UOA"
 
 
@@ -87,68 +90,93 @@ def fallen_message(update: Update, context: CallbackContext):
     message = update.effective_message
     chat = update.effective_chat
 
-    if not message.text or message.document:
-        return
-
     if not sql.is_fallen(chat.id):
         return
 
-    if message.text.startswith(("/", "!", "#")):
+    if message.text and message.text.startswith(("/", "!", "#")):
         return
 
     is_reply_to_bot = (
         message.reply_to_message
         and message.reply_to_message.from_user.id == BOT_ID
     )
-    is_tagged = BOT_USERNAME and f"@{BOT_USERNAME.lower()}" in message.text.lower()
+    is_tagged = bool(
+        message.text
+        and BOT_USERNAME
+        and f"@{BOT_USERNAME.lower()}" in message.text.lower()
+    )
     is_private = chat.type == "private"
 
     if not (is_reply_to_bot or is_tagged or is_private):
         return
 
-    user_text = message.text
-    if BOT_USERNAME:
-        user_text = user_text.replace(f"@{BOT_USERNAME}", "").replace(f"@{BOT_USERNAME.lower()}", "").strip()
+    if message.text:
+        user_text = message.text
+        if BOT_USERNAME:
+            user_text = (
+                user_text.replace(f"@{BOT_USERNAME}", "")
+                .replace(f"@{BOT_USERNAME.lower()}", "")
+                .strip()
+            )
+        prompt_content = f"User says: {user_text}"
+    elif message.sticker:
+        sticker_emoji = message.sticker.emoji or "random sticker"
+        prompt_content = f"User sent this sticker emoji: {sticker_emoji}. Give a short funny or roast reply in Hinglish."
+    else:
+        return
 
-    if not user_text:
+    if not prompt_content.strip():
         return
 
     context.bot.send_chat_action(chat.id, action="typing")
 
+    system_instruction = (
+        f"You are {BOT_NAME}, a savage, witty Indian Telegram chatbot. "
+        "Reply in Hinglish (Hindi + English). If the user asks for roast or sends stickers, "
+        "give a funny and savage comeback. Keep it short (1-2 lines)."
+    )
+
+    # 1. Try Gemini API
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         payload = {
             "contents": [
                 {
                     "parts": [
-                        {
-                            "text": (
-                                f"You are {BOT_NAME}, an Indian Telegram AI bot with a savage, witty, and friendly personality. "
-                                "Reply naturally in Hindi/Hinglish (mix of Hindi & English). "
-                                "If the user asks to roast or jokes with you, give funny, sharp, savage roasts in pure Hinglish slang. Keep responses crisp (1-3 sentences).\n\n"
-                                f"User: {user_text}"
-                            )
-                        }
+                        {"text": f"{system_instruction}\n\n{prompt_content}"}
                     ]
                 }
             ]
         }
-        res = requests.post(url, json=payload, timeout=8)
+        res = requests.post(url, json=payload, timeout=7)
         if res.status_code == 200:
-            data = res.json()
-            reply_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            reply_text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
             if reply_text:
                 message.reply_text(reply_text.strip())
                 return
-    except Exception:
-        pass
+        else:
+            LOGGER.error(f"[Chatbot] Gemini Error: {res.status_code} - {res.text}")
+    except Exception as e:
+        LOGGER.error(f"[Chatbot] Gemini Exception: {e}")
+
+    # 2. Automatic Backup AI (Pollinations)
+    try:
+        fallback_prompt = requests.utils.quote(f"{system_instruction}\n{prompt_content}")
+        url_fallback = f"https://text.pollinations.ai/{fallback_prompt}"
+        res_fb = requests.get(url_fallback, timeout=8)
+        if res_fb.status_code == 200 and res_fb.text.strip():
+            message.reply_text(res_fb.text.strip())
+            return
+    except Exception as e:
+        LOGGER.error(f"[Chatbot] Fallback Error: {e}")
 
 
 CHATBOT_HANDLER = CommandHandler("chatbot", chatbot, filters=Filters.chat_type.groups)
 ADD_CHAT_HANDLER = CallbackQueryHandler(chatbot_status, pattern=r"add_chat")
 RM_CHAT_HANDLER = CallbackQueryHandler(chatbot_status, pattern=r"rm_chat")
+
 CHATBOT_MSG_HANDLER = MessageHandler(
-    Filters.text & (~Filters.regex(r"^/")),
+    (Filters.text | Filters.sticker) & (~Filters.regex(r"^/")),
     fallen_message,
 )
 
