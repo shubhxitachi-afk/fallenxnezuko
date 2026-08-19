@@ -20,6 +20,9 @@ from FallenRobot import BOT_ID, BOT_NAME, BOT_USERNAME, dispatcher
 from FallenRobot.modules.helper_funcs.chat_status import user_admin_no_reply
 from FallenRobot.modules.log_channel import gloggable
 
+# Free Google Gemini API Key
+GEMINI_API_KEY = "AQ.Ab8RN6Jc8Xc1SXFL3RaVf-rCwBqnxFBgKQ1DfbS2IXUAYc7UOA"
+
 
 @run_async
 @user_admin_no_reply
@@ -87,14 +90,12 @@ def fallen_message(update: Update, context: CallbackContext):
     if not message.text or message.document:
         return
 
-    # Check if chatbot is enabled for this chat
     if not sql.is_fallen(chat.id):
         return
 
     if message.text.startswith(("/", "!", "#")):
         return
 
-    # Trigger conditions
     is_reply_to_bot = (
         message.reply_to_message
         and message.reply_to_message.from_user.id == BOT_ID
@@ -102,7 +103,6 @@ def fallen_message(update: Update, context: CallbackContext):
     is_tagged = BOT_USERNAME and f"@{BOT_USERNAME.lower()}" in message.text.lower()
     is_private = chat.type == "private"
 
-    # If it's a group, reply if tagged or replied to bot
     if not (is_reply_to_bot or is_tagged or is_private):
         return
 
@@ -115,27 +115,31 @@ def fallen_message(update: Update, context: CallbackContext):
 
     context.bot.send_chat_action(chat.id, action="typing")
 
-    # Ultra-Fast Free Chat Endpoint
-    headers = {"User-Agent": "Mozilla/5.0"}
     try:
-        api_url = f"https://api.simsimi.vn/v1/simtalk"
-        payload = {"text": user_text, "lc": "hi"}  # Hindi / Hinglish mode
-        res = requests.post(api_url, data=payload, headers=headers, timeout=6)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": (
+                                f"You are {BOT_NAME}, an Indian Telegram AI bot with a savage, witty, and friendly personality. "
+                                "Reply naturally in Hindi/Hinglish (mix of Hindi & English). "
+                                "If the user asks to roast or jokes with you, give funny, sharp, savage roasts in pure Hinglish slang. Keep responses crisp (1-3 sentences).\n\n"
+                                f"User: {user_text}"
+                            )
+                        }
+                    ]
+                }
+            ]
+        }
+        res = requests.post(url, json=payload, timeout=8)
         if res.status_code == 200:
-            reply = res.json().get("message")
-            if reply and reply.strip():
-                message.reply_text(reply)
+            data = res.json()
+            reply_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            if reply_text:
+                message.reply_text(reply_text.strip())
                 return
-    except Exception:
-        pass
-
-    # Fallback 2: Pollinations AI
-    try:
-        url = f"https://text.pollinations.ai/{requests.utils.quote(user_text)}?model=openai"
-        res = requests.get(url, headers=headers, timeout=8)
-        if res.status_code == 200 and res.text.strip():
-            message.reply_text(res.text.strip())
-            return
     except Exception:
         pass
 
