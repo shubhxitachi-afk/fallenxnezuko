@@ -7,15 +7,26 @@ class Config(object):
     TOKEN = "8954458459:AAERwS4ZGfRsWQXVVkCq-Wt49biCgfM7GHs"
     OWNER_ID = 8888788314
 
-    # Databases (Yahan DATABASE_URL dalna zaroori hai)
-    DATABASE_URL = "YAHAN_APNA_POSTGRESQL_LINK_PASTE_KAREIN"
+    # Databases
+    DATABASE_URL = "postgresql://neondb_owner:npg_SbiFpKsRM5z2@ep-lucky-dew-ay5nrutb.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
     MONGO_DB_URI = "mongodb+srv://shubhxitachi_db_user:3r1jKiHGmAyd93wy@nezukonbot.wkzudm6.mongodb.net/?retryWrites=true&w=majority"
 
-    # Other Settings
+    # API Keys & Custom Settings
+    CASH_API_KEY = "GL1I3O6OUMCWEDQ8"
+    TIME_API_KEY = "06PTU1Q9M7US"
+    EVENT_LOGS = ()
     START_IMG = "https://te.legra.ph/file/40eb1ed850cdea274693e.jpg"
     SUPPORT_CHAT = "nezukochatgc11"
-    EVENT_LOGS = ()
 
+    # Permission Lists
+    BL_CHATS = []
+    DRAGONS = []
+    DEV_USERS = []
+    DEMONS = []
+    TIGERS = []
+    WOLVES = []
+
+    # Bot Internal Settings
     ALLOW_CHATS = True
     ALLOW_EXCL = True
     DEL_CMDS = True
