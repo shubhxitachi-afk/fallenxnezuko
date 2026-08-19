@@ -1,36 +1,20 @@
 class Config(object):
     LOGGER = True
 
-    # Get this value from my.telegram.org/apps
+    # Telegram API Credentials
     API_ID = 34829388
     API_HASH = "30df7fd725bd39aa2e3b7a55b15a182b"
+    TOKEN = "8954458459:AAERwS4ZGfRsWQXVVkCq-Wt49biCgfM7GHs"
+    OWNER_ID = 8888788314
 
-    CASH_API_KEY = ""  # Get this value for currency converter from https://www.alphavantage.co/support/#api-key
+    # Databases (Yahan DATABASE_URL dalna zaroori hai)
+    DATABASE_URL = "YAHAN_APNA_POSTGRESQL_LINK_PASTE_KAREIN"
+    MONGO_DB_URI = "mongodb+srv://shubhxitachi_db_user:3r1jKiHGmAyd93wy@nezukonbot.wkzudm6.mongodb.net/?retryWrites=true&w=majority"
 
-    DATABASE_URL = ""  # A sql database url from elephantsql.com
-
-    EVENT_LOGS = ()  # Event logs channel to note down important bot level events
-
-    MONGO_DB_URI = "mongodb+srv://shubhxitachi_db_user:3r1jKiHGmAyd93wy@nezukonbot.wkzudm6.mongodb.net/?retryWrites=true&w=majority"  # Get ths value from cloud.mongodb.com
-
-    # Telegraph link of the image which will be shown at start command.
+    # Other Settings
     START_IMG = "https://te.legra.ph/file/40eb1ed850cdea274693e.jpg"
-
-    SUPPORT_CHAT = "nezukochatgc11"  # Your Telegram support group chat username where your users will go and bother you
-
-    TOKEN = "8954458459:AAERwS4ZGfRsWQXVVkCq-Wt49biCgfM7GHs"  # Get bot token from @BotFather on Telegram
-
-    TIME_API_KEY = ""  # Get this value from https://timezonedb.com/api
-
-    OWNER_ID = 8888788314  # User id of your telegram account (Must be integer)
-
-    # Optional fields
-    BL_CHATS = []  # List of groups that you want blacklisted.
-    DRAGONS = []  # User id of sudo users
-    DEV_USERS = []  # User id of dev users
-    DEMONS = []  # User id of support users
-    TIGERS = []  # User id of tiger users
-    WOLVES = []  # User id of whitelist users
+    SUPPORT_CHAT = "nezukochatgc11"
+    EVENT_LOGS = ()
 
     ALLOW_CHATS = True
     ALLOW_EXCL = True
