@@ -32,7 +32,7 @@ class Config(object):
     DEL_CMDS = True
     INFOPIC = True
     LOAD = []
-    NO_LOAD = []
+    NO_LOAD = ["google"]
     STRICT_GBAN = True
     TEMP_DOWNLOAD_DIRECTORY = "./"
     WORKERS = 8
