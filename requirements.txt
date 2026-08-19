@@ -26,3 +26,4 @@ sqlalchemy==1.4.46
 telethon==1.41.2
 tgcrypto==1.2.5
 wikipedia==1.4.0
+bing-image-downloader
