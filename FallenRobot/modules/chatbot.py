@@ -23,8 +23,7 @@ from FallenRobot.modules.log_channel import gloggable
 
 LOGGER = logging.getLogger(__name__)
 
-# Google Gemini API Key
-GEMINI_API_KEY = "AQ.Ab8RN6Kqz-DaYYXnS5DdSWqjospw_icTo-_yXjlC88_db_hETg"
+GEMINI_TOKEN = "AQ.Ab8RN6Kqz-DaYYXnS5DdSWqjospw_icTo-_yXjlC88_db_hETg"
 
 
 @run_async
@@ -118,10 +117,10 @@ def fallen_message(update: Update, context: CallbackContext):
                 .replace(f"@{BOT_USERNAME.lower()}", "")
                 .strip()
             )
-        prompt_content = f"User says: {user_text}"
+        prompt_content = f"User: {user_text}"
     elif message.sticker:
         sticker_emoji = message.sticker.emoji or "random sticker"
-        prompt_content = f"User sent this sticker emoji: {sticker_emoji}. Give a short funny or roast reply in Hinglish."
+        prompt_content = f"User sent sticker: {sticker_emoji}. Roast or react in savage Hinglish."
     else:
         return
 
@@ -130,45 +129,64 @@ def fallen_message(update: Update, context: CallbackContext):
 
     context.bot.send_chat_action(chat.id, action="typing")
 
-    system_instruction = (
-        f"You are {BOT_NAME}, a savage, witty Indian Telegram chatbot. "
-        "Reply in Hinglish (Hindi + English). If the user asks for roast or sends stickers, "
-        "give a funny and savage comeback. Keep it short (1-2 lines)."
+    system_msg = (
+        f"You are {BOT_NAME}, an Indian savage, witty Telegram chatbot. "
+        "Reply naturally in Hindi/Hinglish (mix of Hindi & English). "
+        "Keep it crisp, funny, and 1-2 lines only."
     )
 
-    # 1. Try Gemini API
+    # 1. Gemini Request (Bearer Auth Support)
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        if GEMINI_TOKEN.startswith("AIzaSy"):
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_TOKEN}"
+            headers = {"Content-Type": "application/json"}
+        else:
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {GEMINI_TOKEN}",
+            }
+
         payload = {
             "contents": [
                 {
                     "parts": [
-                        {"text": f"{system_instruction}\n\n{prompt_content}"}
+                        {"text": f"{system_msg}\n\n{prompt_content}"}
                     ]
                 }
             ]
         }
-        res = requests.post(url, json=payload, timeout=7)
+        res = requests.post(url, json=payload, headers=headers, timeout=8)
         if res.status_code == 200:
-            reply_text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
-            if reply_text:
-                message.reply_text(reply_text.strip())
+            reply = res.json()["candidates"][0]["content"]["parts"][0]["text"]
+            if reply:
+                message.reply_text(reply.strip())
                 return
         else:
             LOGGER.error(f"[Chatbot] Gemini Error: {res.status_code} - {res.text}")
     except Exception as e:
         LOGGER.error(f"[Chatbot] Gemini Exception: {e}")
 
-    # 2. Automatic Backup AI (Pollinations)
+    # 2. Fast Backup Engine
     try:
-        fallback_prompt = requests.utils.quote(f"{system_instruction}\n{prompt_content}")
-        url_fallback = f"https://text.pollinations.ai/{fallback_prompt}"
-        res_fb = requests.get(url_fallback, timeout=8)
+        fb_url = "https://text.pollinations.ai/"
+        full_query = f"{system_msg}\n{prompt_content}\n{BOT_NAME}:"
+        res_fb = requests.post(
+            fb_url,
+            json={"messages": [{"role": "user", "content": full_query}]},
+            timeout=8,
+        )
         if res_fb.status_code == 200 and res_fb.text.strip():
             message.reply_text(res_fb.text.strip())
             return
+        
+        # Simple GET fallback
+        res_get = requests.get(f"{fb_url}{requests.utils.quote(full_query)}", timeout=8)
+        if res_get.status_code == 200 and res_get.text.strip():
+            message.reply_text(res_get.text.strip())
+            return
     except Exception as e:
-        LOGGER.error(f"[Chatbot] Fallback Error: {e}")
+        LOGGER.error(f"[Chatbot] Backup Error: {e}")
 
 
 CHATBOT_HANDLER = CommandHandler("chatbot", chatbot, filters=Filters.chat_type.groups)
