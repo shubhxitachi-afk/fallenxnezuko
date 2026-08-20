@@ -24,7 +24,7 @@ from FallenRobot.modules.log_channel import gloggable
 LOGGER = logging.getLogger(__name__)
 
 # Google Gemini API Key
-GEMINI_API_KEY = "AQ.Ab8RN6Jc8Xc1SXFL3RaVf-rCwBqnxFBgKQ1DfbS2IXUAYc7UOA"
+GEMINI_API_KEY = "AQ.Ab8RN6Kqz-DaYYXnS5DdSWqjospw_icTo-_yXjlC88_db_hETg"
 
 
 @run_async
